@@ -1,14 +1,10 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-const CustomerRoute = () => {
-  const { isAuthenticated } = useAuth();
+const CustomerRoute = ({ children }) => {
+  const { user } = useAuth();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-
-  return <Outlet />;
+  return user ? children : <Navigate to="/login" />;
 };
 
 export default CustomerRoute;

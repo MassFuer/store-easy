@@ -1,6 +1,7 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = 'https://api.example.com'; // Replace with your actual API URL
+// const API_URL = 'https://api.example.com'; // Replace with your actual API URL
+const API_URL = "http://localhost:5005"; // Local API URL for development
 
 // Function to get all products
 export const getProducts = async () => {
@@ -8,7 +9,7 @@ export const getProducts = async () => {
     const response = await axios.get(`${API_URL}/products`);
     return response.data;
   } catch (error) {
-    throw new Error('Error fetching products');
+    throw new Error("Error fetching products");
   }
 };
 
@@ -18,7 +19,7 @@ export const getProductById = async (id) => {
     const response = await axios.get(`${API_URL}/products/${id}`);
     return response.data;
   } catch (error) {
-    throw new Error('Error fetching product');
+    throw new Error("Error fetching product");
   }
 };
 
@@ -28,7 +29,7 @@ export const createOrder = async (orderData) => {
     const response = await axios.post(`${API_URL}/orders`, orderData);
     return response.data;
   } catch (error) {
-    throw new Error('Error creating order');
+    throw new Error("Error creating order");
   }
 };
 
@@ -38,7 +39,7 @@ export const getUserOrders = async (userId) => {
     const response = await axios.get(`${API_URL}/users/${userId}/orders`);
     return response.data;
   } catch (error) {
-    throw new Error('Error fetching user orders');
+    throw new Error("Error fetching user orders");
   }
 };
 
@@ -48,7 +49,7 @@ export const registerUser = async (userData) => {
     const response = await axios.post(`${API_URL}/register`, userData);
     return response.data;
   } catch (error) {
-    throw new Error('Error registering user');
+    throw new Error("Error registering user");
   }
 };
 
@@ -58,6 +59,6 @@ export const loginUser = async (credentials) => {
     const response = await axios.post(`${API_URL}/login`, credentials);
     return response.data;
   } catch (error) {
-    throw new Error('Error logging in user');
+    throw new Error("Error logging in user");
   }
 };

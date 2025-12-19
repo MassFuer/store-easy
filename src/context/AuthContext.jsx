@@ -1,62 +1,92 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect } from "react";
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user on mount
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
     }
+    setLoading(false);
   }, []);
 
   const login = async (email, password) => {
+    // logic for user login
     try {
-      // Check admins
-      const adminResponse = await fetch(`http://localhost:5005/admins?email=${email}&password=${password}`);
-      const admins = await adminResponse.json();
+      // Fetch all users and verify credentials on client side
+      const response = await fetch("http://localhost:3001/users");
+      const users = await response.json();
 
-      if (admins.length > 0) {
-        const admin = admins[0];
-        setUser(admin);
-        setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(admin));
-        return { success: true, user: admin };
+      const foundUser = users.find(
+        (u) => u.email === email && u.password === password
+      );
+
+      if (foundUser) {
+        // Don't store password in user object
+        const { password, ...userWithoutPassword } = foundUser;
+        setUser(userWithoutPassword);
+        localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+        return { success: true, user: userWithoutPassword };
+      } else {
+        throw new Error("Invalid email or password");
       }
-
-      // Check customers
-      const customerResponse = await fetch(`http://localhost:5005/customers?email=${email}&password=${password}`);
-      const customers = await customerResponse.json();
-
-      if (customers.length > 0) {
-        const customer = customers[0];
-        setUser(customer);
-        setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(customer));
-        return { success: true, user: customer };
-      }
-
-      return { success: false, message: 'Invalid credentials' };
     } catch (error) {
-      return { success: false, message: 'Login failed' };
+      console.error("Login error:", error);
+      return { success: false, error: error.message };
     }
   };
 
-  const logout = () => {
+  const register = async (email, password, name) => {
+    // logic for user registration
+    try {
+      // Check if user already exists
+      const checkResponse = await fetch("http://localhost:3001/users");
+      const users = await checkResponse.json();
+
+      if (users.some((u) => u.email === email)) {
+        throw new Error("User already exists");
+      }
+
+      // Register new user
+      const response = await fetch("http://localhost:3001/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+          createdAt: new Date().toISOString(),
+        }),
+      });
+
+      const newUser = await response.json();
+      const { password: _, ...userWithoutPassword } = newUser;
+
+      setUser(userWithoutPassword);
+      localStorage.setItem("user", JSON.stringify(userWithoutPassword));
+      return { success: true, user: userWithoutPassword };
+    } catch (error) {
+      console.error("Registration error:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const logout = async () => {
+    // logic for user logout
     setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('user');
+    localStorage.removeItem("user");
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
