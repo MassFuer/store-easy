@@ -9,6 +9,7 @@ export const getProducts = async () => {
     const response = await axios.get(`${API_URL}/products`);
     return response.data;
   } catch (error) {
+    console.log(error);
     throw new Error("Error fetching products");
   }
 };
@@ -19,6 +20,7 @@ export const getProductById = async (id) => {
     const response = await axios.get(`${API_URL}/products/${id}`);
     return response.data;
   } catch (error) {
+    console.log(error);
     throw new Error("Error fetching product");
   }
 };
@@ -29,6 +31,7 @@ export const createOrder = async (orderData) => {
     const response = await axios.post(`${API_URL}/orders`, orderData);
     return response.data;
   } catch (error) {
+    console.log(error);
     throw new Error("Error creating order");
   }
 };
@@ -39,6 +42,7 @@ export const getUserOrders = async (userId) => {
     const response = await axios.get(`${API_URL}/users/${userId}/orders`);
     return response.data;
   } catch (error) {
+    console.log(error);
     throw new Error("Error fetching user orders");
   }
 };
@@ -49,6 +53,7 @@ export const registerUser = async (userData) => {
     const response = await axios.post(`${API_URL}/register`, userData);
     return response.data;
   } catch (error) {
+    console.log(error);
     throw new Error("Error registering user");
   }
 };
@@ -59,6 +64,7 @@ export const loginUser = async (credentials) => {
     const response = await axios.post(`${API_URL}/login`, credentials);
     return response.data;
   } catch (error) {
+    console.log(error);
     throw new Error("Error logging in user");
   }
 };
@@ -69,6 +75,7 @@ export const getCategories = async () => {
     const response = await axios.get(`${API_URL}/categories`);
     return response.data;
   } catch (error) {
+    console.log(error);
     throw new Error("Error fetching categories");
   }
 };
