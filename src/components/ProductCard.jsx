@@ -31,7 +31,7 @@ const ProductCard = ({ product }) => {
 
         <div className="product-footer">
           <div className="product-price-container">
-            <span className="product-price">${product.price.toFixed(2)}</span>
+            <span className="product-price">€{product.price.toFixed(2)}</span>
           </div>
 
           {isInStock ? (

@@ -21,12 +21,12 @@ const Checkout = () => {
           <ul>
             {cartItems.map((item) => (
               <li key={item.id}>
-                {item.name} - ${item.price} x {item.quantity}
+                {item.name} - €{item.price} x {item.quantity}
               </li>
             ))}
           </ul>
         )}
-        <h3>Total Amount: ${totalAmount}</h3>
+        <h3>Total Amount: €{totalAmount}</h3>
       </div>
       <button onClick={handleCheckout} className="checkout-button">
         Proceed to Payment

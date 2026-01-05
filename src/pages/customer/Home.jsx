@@ -116,7 +116,7 @@ const Home = () => {
             <div className="feature-card">
               <div className="feature-icon">🚚</div>
               <h3>Free Shipping</h3>
-              <p>On orders over $50</p>
+              <p>On orders over €50</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">↩️</div>

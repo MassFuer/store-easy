@@ -81,7 +81,7 @@ const Sidebar = ({ onFilterChange, currentFilters }) => {
         <div className="price-filter">
           <div className="price-inputs">
             <div className="price-input-group">
-              <label>Min ($)</label>
+              <label>Min (€)</label>
               <input
                 type="number"
                 name="min"
@@ -92,7 +92,7 @@ const Sidebar = ({ onFilterChange, currentFilters }) => {
               />
             </div>
             <div className="price-input-group">
-              <label>Max ($)</label>
+              <label>Max (€)</label>
               <input
                 type="number"
                 name="max"
@@ -104,7 +104,7 @@ const Sidebar = ({ onFilterChange, currentFilters }) => {
             </div>
           </div>
           <div className="price-range-display">
-            ${priceRange.min} - ${priceRange.max}
+            €{priceRange.min} - €{priceRange.max}
           </div>
         </div>
       </div>

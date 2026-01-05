@@ -7,7 +7,7 @@ const CartItem = ({ item, onRemove }) => {
       <img src={item.image} alt={item.name} className="cart-item-image" />
       <div className="cart-item-details">
         <h3 className="cart-item-name">{item.name}</h3>
-        <p className="cart-item-price">${item.price.toFixed(2)}</p>
+        <p className="cart-item-price">€{item.price.toFixed(2)}</p>
         <button className="cart-item-remove" onClick={() => onRemove(item.id)}>
           Remove
         </button>
