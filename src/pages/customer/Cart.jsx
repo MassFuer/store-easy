@@ -19,7 +19,7 @@ const Cart = () => {
             ))}
           </div>
           <div className="cart-total">
-            <h2>Total: ${totalAmount.toFixed(2)}</h2>
+            <h2>Total: €{totalAmount.toFixed(2)}</h2>
           </div>
         </div>
       )}
