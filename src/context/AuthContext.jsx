@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
 
 export const AuthContext = createContext();
 
@@ -18,11 +18,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async ({ email, password }) => {
     // logic for user login
     try {
       // Fetch all users and verify credentials on client side
-      const response = await fetch("http://localhost:3001/users");
+      const response = await fetch("http://localhost:5005/users");
       const users = await response.json();
 
       const foundUser = users.find(
@@ -44,11 +44,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password, name) => {
+  const register = async ({email, password, name}) => {
     // logic for user registration
     try {
       // Check if user already exists
-      const checkResponse = await fetch("http://localhost:3001/users");
+      const checkResponse = await fetch("http://localhost:5005/users");
       const users = await checkResponse.json();
 
       if (users.some((u) => u.email === email)) {
