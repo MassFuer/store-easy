@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async ({ email, password }) => {
     // logic for user login
     try {
       // Fetch all users and verify credentials on client side
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password, name) => {
+  const register = async ({email, password, name}) => {
     // logic for user registration
     try {
       // Check if user already exists

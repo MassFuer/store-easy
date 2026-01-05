@@ -1,19 +1,45 @@
-import React, { useState } from 'react';
-import './Login.css';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "./Login.css";
+
+import { useAuth } from "../../context/AuthContext";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     // Add login logic here
     if (!email || !password) {
-      setError('Please fill in all fields');
+      setError("Please fill in all fields");
       return;
     }
     // Perform login action
+    try {
+      // Call API to authenticate
+      const response = await login({ email, password });
+      console.log("Login response:", response);
+      
+      if (!response.success) {
+        throw new Error(response.error || "Login failed");
+      }
+
+      // Redirect based on role
+      if (response.user.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(err.message || "Invalid email or password");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
