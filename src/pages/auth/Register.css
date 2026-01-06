@@ -1,5 +1,5 @@
 .register-page {
-  min-height: 100vh;
+  min-height: 78.6vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,6 +164,9 @@
 .btn-register {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  padding: 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
   border: none;
   padding: 1rem;
   border-radius: 8px;

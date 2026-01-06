@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getProducts, getCategories } from "../../services/api";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
 import ProductCard from "../../components/ProductCard";
 import Loader from "../../components/Loader";
 import "./Home.css";
@@ -18,15 +16,15 @@ const Home = () => {
         setLoading(true);
         const [productsData, categoriesData] = await Promise.all([
           getProducts(),
-          getCategories()
+          getCategories(),
         ]);
 
         // Filter only active products for featured section
-        const activeProducts = productsData.filter(p => p.isActive);
+        const activeProducts = productsData.filter((p) => p.isActive);
         setProducts(activeProducts.slice(0, 4)); // Show only 4 featured products
 
         // Filter only active categories
-        const activeCategories = categoriesData.filter(c => c.isActive);
+        const activeCategories = categoriesData.filter((c) => c.isActive);
         setCategories(activeCategories);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -48,7 +46,6 @@ const Home = () => {
 
   return (
     <div className="home-page">
-
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
@@ -83,7 +80,9 @@ const Home = () => {
                 <div className="category-info">
                   <h3>{category.name}</h3>
                   <p>{category.description}</p>
-                  <span className="category-count">{category.count} products</span>
+                  <span className="category-count">
+                    {category.count} products
+                  </span>
                 </div>
               </Link>
             ))}
@@ -135,7 +134,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
     </div>
   );
 };

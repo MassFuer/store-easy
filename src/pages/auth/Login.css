@@ -1,5 +1,5 @@
 .login-page {
-  min-height: 100vh;
+  min-height: 78.6vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,6 +147,9 @@
   gap: 0.5rem;
   color: #4b5563;
   cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  margin-top: 0.5rem;
 }
 
 .remember-me input[type="checkbox"] {
