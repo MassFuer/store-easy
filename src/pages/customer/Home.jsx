@@ -41,7 +41,6 @@ const Home = () => {
   if (loading) {
     return (
       <>
-        <Navbar />
         <Loader />
       </>
     );

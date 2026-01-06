@@ -141,7 +141,7 @@
 
 /* Featured Products Section */
 .featured-products-section {
-  padding: 4rem 0;
+  padding: 2rem 0;
 }
 
 .section-header {
@@ -149,6 +149,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2.5rem;
+  flex-direction: column;
 }
 
 .view-all-link {
@@ -172,7 +173,6 @@
 
 /* Features Section */
 .features-section {
-  padding: 4rem 0;
   background-color: #f8f9fa;
 }
 
@@ -238,11 +238,6 @@
 
   .section-title {
     font-size: 2rem;
-  }
-
-  .section-header {
-    flex-direction: column;
-    gap: 1rem;
   }
 
   .categories-grid,

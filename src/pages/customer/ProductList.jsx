@@ -78,7 +78,6 @@ const ProductList = () => {
   if (loading) {
     return (
       <>
-        <Navbar />
         <Loader />
       </>
     );

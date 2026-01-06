@@ -6,6 +6,9 @@ import { CartProvider } from "./context/CartContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
+// Layouts
+import AdminLayout from "./layouts/AdminLayout";
+
 // Auth Pages
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -14,6 +17,9 @@ import Register from "./pages/auth/Register";
 import Home from "./pages/customer/Home";
 import ProductList from "./pages/customer/ProductList";
 import ProductDetail from "./pages/customer/ProductDetail";
+import Categories from "./pages/customer/Categories";
+import Brands from "./pages/customer/Brands";
+
 import Cart from "./pages/customer/Cart";
 import Checkout from "./pages/customer/Checkout";
 import Orders from "./pages/customer/Orders";
@@ -37,7 +43,7 @@ function App() {
     <AuthProvider>
       <CartProvider>
         <BrowserRouter>
-        <Navbar /> 
+          <Navbar />
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
@@ -47,6 +53,8 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<ProductList />} />
             <Route path="/products/:id" element={<ProductDetail />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/brands" element={<Brands />} />
 
             {/* <Route element={<CustomerRoute />}> */}
             <Route path="/cart" element={<Cart />} />
@@ -58,18 +66,23 @@ function App() {
 
             {/* Admin Routes */}
             {/* <Route element={<AdminRoute />}> */}
-            <Route path="/admin" element={<Dashboard />} />
-            <Route path="/admin/products" element={<ProductManagement />} />
-            <Route path="/admin/inventory" element={<InventoryManagement />} />
-            <Route path="/admin/orders" element={<OrderManagement />} />
-            <Route path="/admin/customers" element={<CustomerManagement />} />
-            <Route path="/admin/stock-orders" element={<StockOrders />} />
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<Dashboard />} />
+              <Route path="/admin/products" element={<ProductManagement />} />
+              <Route
+                path="/admin/inventory"
+                element={<InventoryManagement />}
+              />
+              <Route path="/admin/orders" element={<OrderManagement />} />
+              <Route path="/admin/customers" element={<CustomerManagement />} />
+              <Route path="/admin/stock-orders" element={<StockOrders />} />
+            </Route>
             {/* </Route> */}
 
             {/* Catch All */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
-        <Footer />
+          <Footer />
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>
