@@ -410,7 +410,7 @@ const StockOrders = () => {
           <tbody>
             {filteredOrders.length > 0 ? (
               filteredOrders.map((order) => (
-                <tr key={order.id}>
+                <tr key={order.id} className="so-table-row">
                   <td className="order-id">#{order.id}</td>
                   <td className="product-cell">{order.productName}</td>
                   <td className="quantity-cell">

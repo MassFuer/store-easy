@@ -342,6 +342,17 @@ export const getOrderById = async (id) => {
   }
 };
 
+// Get orders by user ID
+export const getOrdersByUserId = async (userId) => {
+  try {
+    const response = await axios.get(`${API_URL}/orders?userId=${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    throw new Error("Error fetching orders");
+  }
+};
+
 // Get user orders (Customer)
 export const getUserOrders = async (userId) => {
   try {
@@ -369,7 +380,7 @@ export const createOrder = async (orderData) => {
       ...orderData,
       orderNumber,
       status: "pending",
-      trackingNumber: null,
+      trackingNumber: generateTrackingNumber(), 
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -380,6 +391,16 @@ export const createOrder = async (orderData) => {
     console.error("Error creating order:", error);
     throw new Error("Error creating order");
   }
+};
+
+// Function to generate a random tracking number of 18 alphanumeric characters
+const generateTrackingNumber = () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let trackingNumber = "";
+  for (let i = 0; i < 18; i++) {
+    trackingNumber += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return trackingNumber;
 };
 
 // Update order status (Admin)

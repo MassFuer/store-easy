@@ -32,7 +32,7 @@ const Navbar = () => {
     }
     return "U";
   };
-  
+
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -87,14 +87,16 @@ const Navbar = () => {
               Favorites
             </NavLink>
           </li>
-          <li>
-            <NavLink
-              to="/orders"
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              Orders
-            </NavLink>
-          </li>
+          {isAuthenticated && (
+            <li>
+              <NavLink
+                to="/orders"
+                className={({ isActive }) => (isActive ? "active" : "")}
+              >
+                Orders
+              </NavLink>
+            </li>
+          )}
           {isAdmin && (
             <li>
               <NavLink

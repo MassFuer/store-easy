@@ -195,7 +195,14 @@
 .so-table td {
   padding: 1rem;
   text-align: left;
+}
+
+.so-table tr {
   border-bottom: 1px solid #e5e7eb;
+}
+
+.so-table tr:last-child {
+  border-bottom: none;
 }
 
 .so-table th {

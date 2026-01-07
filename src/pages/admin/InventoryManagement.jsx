@@ -28,6 +28,7 @@ const InventoryManagement = () => {
   const [adjustForm, setAdjustForm] = useState({
     adjustmentType: "add",
     quantity: "",
+    size: "",
     reason: "",
     notes: "",
   });
@@ -41,6 +42,8 @@ const InventoryManagement = () => {
     "Customer Return",
     "Theft/Loss",
     "Transfer",
+    "Sale",
+    "Restock",
     "Other",
   ];
 
@@ -62,12 +65,9 @@ const InventoryManagement = () => {
         const product = productsData.find((p) => p.id === inv.productId);
         return {
           ...inv,
-          productName: product?.name || "Unknown Product",
-          productImage: product?.images?.[0] || product?.image || "",
-          sku: product?.sku || inv.sku,
-          category: product?.category || "",
-          brand: product?.brand || "",
-          price: product?.price || 0,
+          productImage: product?.images?.[0] || "",
+          price: product?.price || inv.sellingPrice || 0,
+          sizes: product?.sizes || [],
         };
       });
 
@@ -86,15 +86,16 @@ const InventoryManagement = () => {
     .filter((item) => {
       const matchesSearch =
         item.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+        item.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.brand?.toLowerCase().includes(searchTerm.toLowerCase());
 
       let matchesStock = true;
       if (filterStock === "low") {
-        matchesStock = item.quantity <= item.lowStockThreshold && item.quantity > 0;
+        matchesStock = item.status === "low_stock";
       } else if (filterStock === "out") {
-        matchesStock = item.quantity === 0;
+        matchesStock = item.status === "out_of_stock" || item.totalStock === 0;
       } else if (filterStock === "inStock") {
-        matchesStock = item.quantity > item.lowStockThreshold;
+        matchesStock = item.status === "in_stock";
       }
 
       return matchesSearch && matchesStock;
@@ -102,13 +103,13 @@ const InventoryManagement = () => {
     .sort((a, b) => {
       switch (sortBy) {
         case "name":
-          return a.productName?.localeCompare(b.productName);
+          return (a.productName || "").localeCompare(b.productName || "");
         case "quantity-asc":
-          return a.quantity - b.quantity;
+          return a.totalStock - b.totalStock;
         case "quantity-desc":
-          return b.quantity - a.quantity;
+          return b.totalStock - a.totalStock;
         case "sku":
-          return a.sku?.localeCompare(b.sku);
+          return (a.sku || "").localeCompare(b.sku || "");
         default:
           return 0;
       }
@@ -117,22 +118,29 @@ const InventoryManagement = () => {
   // Calculate stats
   const stats = {
     totalProducts: inventory.length,
-    totalStock: inventory.reduce((sum, item) => sum + item.quantity, 0),
-    lowStock: inventory.filter(
-      (item) => item.quantity <= item.lowStockThreshold && item.quantity > 0
+    totalStock: inventory.reduce(
+      (sum, item) => sum + (item.totalStock || 0),
+      0
+    ),
+    lowStock: inventory.filter((item) => item.status === "low_stock").length,
+    outOfStock: inventory.filter(
+      (item) => item.status === "out_of_stock" || item.totalStock === 0
     ).length,
-    outOfStock: inventory.filter((item) => item.quantity === 0).length,
     totalValue: inventory.reduce(
-      (sum, item) => sum + item.quantity * item.price,
+      (sum, item) =>
+        sum + (item.totalStock || 0) * (item.sellingPrice || item.price || 0),
       0
     ),
   };
 
-  // Get stock status
-  const getStockStatus = (item) => {
-    if (item.quantity === 0) return { label: "Out of Stock", class: "out" };
-    if (item.quantity <= item.lowStockThreshold)
+  // Get stock status display
+  const getStockStatusDisplay = (item) => {
+    if (item.totalStock === 0 || item.status === "out_of_stock") {
+      return { label: "Out of Stock", class: "out" };
+    }
+    if (item.status === "low_stock" || item.totalStock <= item.reorderLevel) {
       return { label: "Low Stock", class: "low" };
+    }
     return { label: "In Stock", class: "in" };
   };
 
@@ -142,6 +150,7 @@ const InventoryManagement = () => {
     setAdjustForm({
       adjustmentType: "add",
       quantity: "",
+      size: "",
       reason: "",
       notes: "",
     });
@@ -172,43 +181,66 @@ const InventoryManagement = () => {
     setIsSubmitting(true);
 
     try {
-      const previousQuantity = selectedItem.quantity;
-      let newQuantity;
+      const previousStock = selectedItem.totalStock;
+      let newTotalStock;
+      let quantityChange;
 
       if (adjustForm.adjustmentType === "add") {
-        newQuantity = previousQuantity + quantity;
+        newTotalStock = previousStock + quantity;
+        quantityChange = quantity;
       } else if (adjustForm.adjustmentType === "remove") {
-        newQuantity = Math.max(0, previousQuantity - quantity);
+        newTotalStock = Math.max(0, previousStock - quantity);
+        quantityChange = -Math.min(quantity, previousStock);
       } else {
-        newQuantity = quantity; // Set exact quantity
+        // Set exact
+        newTotalStock = quantity;
+        quantityChange = quantity - previousStock;
+      }
+
+      // Determine new status
+      let newStatus = "in_stock";
+      if (newTotalStock === 0) {
+        newStatus = "out_of_stock";
+      } else if (newTotalStock <= selectedItem.reorderLevel) {
+        newStatus = "low_stock";
       }
 
       // Update inventory
-      await updateInventory(selectedItem.id, {
-        quantity: newQuantity,
+      const updatedInventory = {
+        ...selectedItem,
+        totalStock: newTotalStock,
+        availableStock: newTotalStock - (selectedItem.reservedStock || 0),
+        status: newStatus,
         lastRestocked:
           adjustForm.adjustmentType === "add"
             ? new Date().toISOString()
             : selectedItem.lastRestocked,
-      });
+      };
 
-      // Add to inventory log
+      // Remove merged fields before sending to API
+      delete updatedInventory.productImage;
+      delete updatedInventory.price;
+      delete updatedInventory.sizes;
+
+      await updateInventory(selectedItem.id, updatedInventory);
+
+      // Add to inventory log (matching your DB structure)
       await addInventoryLog({
         productId: selectedItem.productId,
-        productName: selectedItem.productName,
-        sku: selectedItem.sku,
-        adjustmentType: adjustForm.adjustmentType,
-        previousQuantity,
-        newQuantity,
-        quantityChanged:
-          adjustForm.adjustmentType === "set"
-            ? newQuantity - previousQuantity
-            : adjustForm.adjustmentType === "add"
-            ? quantity
-            : -quantity,
-        reason: adjustForm.reason,
-        notes: adjustForm.notes,
-        performedBy: "Admin", // Replace with actual user
+        action:
+          adjustForm.adjustmentType === "add"
+            ? "restock"
+            : adjustForm.adjustmentType === "remove"
+            ? "sale"
+            : "adjustment",
+        size: adjustForm.size || null,
+        quantity: quantityChange,
+        previousStock: previousStock,
+        newStock: newTotalStock,
+        reason:
+          adjustForm.reason +
+          (adjustForm.notes ? ` - ${adjustForm.notes}` : ""),
+        orderId: null,
       });
 
       // Update local state
@@ -217,7 +249,9 @@ const InventoryManagement = () => {
           item.id === selectedItem.id
             ? {
                 ...item,
-                quantity: newQuantity,
+                totalStock: newTotalStock,
+                availableStock: newTotalStock - (item.reservedStock || 0),
+                status: newStatus,
                 lastRestocked:
                   adjustForm.adjustmentType === "add"
                     ? new Date().toISOString()
@@ -242,7 +276,7 @@ const InventoryManagement = () => {
   };
 
   // View item history
-  const handleViewHistory = async (item) => {
+  const handleViewHistory = (item) => {
     setSelectedItem(item);
     setShowHistoryModal(true);
   };
@@ -250,7 +284,9 @@ const InventoryManagement = () => {
   // Get item's log history
   const getItemHistory = () => {
     if (!selectedItem) return [];
-    return inventoryLog.filter((log) => log.productId === selectedItem.productId);
+    return inventoryLog.filter(
+      (log) => log.productId === selectedItem.productId
+    );
   };
 
   // Format date
@@ -263,6 +299,20 @@ const InventoryManagement = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // Get action display info
+  const getActionDisplay = (action) => {
+    switch (action) {
+      case "sale":
+        return { icon: "📉", label: "Sale", class: "remove" };
+      case "restock":
+        return { icon: "📈", label: "Restock", class: "add" };
+      case "adjustment":
+        return { icon: "🎯", label: "Adjustment", class: "set" };
+      default:
+        return { icon: "📝", label: action, class: "" };
+    }
   };
 
   if (isLoading) {
@@ -283,10 +333,7 @@ const InventoryManagement = () => {
           <p>Monitor and manage your stock levels</p>
         </div>
         <div className="im-actions">
-          <button
-            className="btn-history"
-            onClick={() => setShowLogModal(true)}
-          >
+          <button className="btn-history" onClick={() => setShowLogModal(true)}>
             📋 View Full Log
           </button>
         </div>
@@ -304,7 +351,9 @@ const InventoryManagement = () => {
         <div className="stat-card">
           <span className="stat-icon">🏷️</span>
           <div className="stat-info">
-            <span className="stat-value">{stats.totalStock.toLocaleString()}</span>
+            <span className="stat-value">
+              {stats.totalStock.toLocaleString()}
+            </span>
             <span className="stat-label">Total Units</span>
           </div>
         </div>
@@ -326,7 +375,8 @@ const InventoryManagement = () => {
           <span className="stat-icon">💰</span>
           <div className="stat-info">
             <span className="stat-value">
-              ${stats.totalValue.toLocaleString("en-US", {
+              $
+              {stats.totalValue.toLocaleString("en-US", {
                 minimumFractionDigits: 2,
               })}
             </span>
@@ -341,7 +391,7 @@ const InventoryManagement = () => {
           <span className="search-icon">🔍</span>
           <input
             type="text"
-            placeholder="Search by product name or SKU..."
+            placeholder="Search by product name, SKU, or brand..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -357,8 +407,8 @@ const InventoryManagement = () => {
         </select>
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           <option value="name">Sort by Name</option>
-          <option value="quantity-asc">Quantity (Low to High)</option>
-          <option value="quantity-desc">Quantity (High to Low)</option>
+          <option value="quantity-asc">Stock (Low to High)</option>
+          <option value="quantity-desc">Stock (High to Low)</option>
           <option value="sku">Sort by SKU</option>
         </select>
       </div>
@@ -371,8 +421,10 @@ const InventoryManagement = () => {
               <th>Product</th>
               <th>SKU</th>
               <th>Category</th>
-              <th>In Stock</th>
-              <th>Threshold</th>
+              <th>Total Stock</th>
+              <th>Available</th>
+              <th>Reserved</th>
+              <th>Reorder Level</th>
               <th>Status</th>
               <th>Last Restocked</th>
               <th>Actions</th>
@@ -381,7 +433,7 @@ const InventoryManagement = () => {
           <tbody>
             {filteredInventory.length > 0 ? (
               filteredInventory.map((item) => {
-                const status = getStockStatus(item);
+                const status = getStockStatusDisplay(item);
                 return (
                   <tr key={item.id}>
                     <td>
@@ -394,7 +446,9 @@ const InventoryManagement = () => {
                           />
                         )}
                         <div className="product-info">
-                          <span className="product-name">{item.productName}</span>
+                          <span className="product-name">
+                            {item.productName}
+                          </span>
                           <span className="product-brand">{item.brand}</span>
                         </div>
                       </div>
@@ -404,17 +458,19 @@ const InventoryManagement = () => {
                     <td className="quantity-cell">
                       <span
                         className={`quantity ${
-                          item.quantity === 0
+                          item.totalStock === 0
                             ? "zero"
-                            : item.quantity <= item.lowStockThreshold
+                            : item.totalStock <= item.reorderLevel
                             ? "low"
                             : ""
                         }`}
                       >
-                        {item.quantity}
+                        {item.totalStock}
                       </span>
                     </td>
-                    <td>{item.lowStockThreshold}</td>
+                    <td>{item.availableStock}</td>
+                    <td>{item.reservedStock}</td>
+                    <td>{item.reorderLevel}</td>
                     <td>
                       <span className={`status-badge ${status.class}`}>
                         {status.label}
@@ -430,14 +486,14 @@ const InventoryManagement = () => {
                           onClick={() => handleAdjustStock(item)}
                           title="Adjust Stock"
                         >
-                          ➕➖
+                          ✏️
                         </button>
                         <button
                           className="btn-action history"
                           onClick={() => handleViewHistory(item)}
                           title="View History"
                         >
-                          📜
+                          📋
                         </button>
                       </div>
                     </td>
@@ -446,7 +502,7 @@ const InventoryManagement = () => {
               })
             ) : (
               <tr>
-                <td colSpan="8" className="no-data">
+                <td colSpan="10" className="no-data">
                   No inventory items found
                 </td>
               </tr>
@@ -457,7 +513,10 @@ const InventoryManagement = () => {
 
       {/* Adjust Stock Modal */}
       {showAdjustModal && selectedItem && (
-        <div className="modal-overlay" onClick={() => setShowAdjustModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowAdjustModal(false)}
+        >
           <div
             className="modal-content adjust-modal"
             onClick={(e) => e.stopPropagation()}
@@ -484,8 +543,15 @@ const InventoryManagement = () => {
                 <div className="product-details">
                   <h3>{selectedItem.productName}</h3>
                   <p>SKU: {selectedItem.sku}</p>
+                  <p>Brand: {selectedItem.brand}</p>
                   <p className="current-stock">
-                    Current Stock: <strong>{selectedItem.quantity}</strong> units
+                    Current Stock: <strong>{selectedItem.totalStock}</strong>{" "}
+                    units (Available: {selectedItem.availableStock}, Reserved:{" "}
+                    {selectedItem.reservedStock})
+                  </p>
+                  <p>
+                    Reorder Level: {selectedItem.reorderLevel} | Reorder Qty:{" "}
+                    {selectedItem.reorderQuantity}
                   </p>
                 </div>
               </div>
@@ -565,17 +631,37 @@ const InventoryManagement = () => {
                       New stock will be:{" "}
                       <strong>
                         {adjustForm.adjustmentType === "add"
-                          ? selectedItem.quantity + parseInt(adjustForm.quantity)
+                          ? selectedItem.totalStock +
+                            parseInt(adjustForm.quantity || 0)
                           : adjustForm.adjustmentType === "remove"
                           ? Math.max(
                               0,
-                              selectedItem.quantity - parseInt(adjustForm.quantity)
+                              selectedItem.totalStock -
+                                parseInt(adjustForm.quantity || 0)
                             )
-                          : parseInt(adjustForm.quantity)}
+                          : parseInt(adjustForm.quantity || 0)}
                       </strong>{" "}
                       units
                     </span>
                   )}
+                </div>
+
+                {/* Size (Optional) */}
+                <div className="form-group">
+                  <label htmlFor="size">Size (Optional)</label>
+                  <select
+                    id="size"
+                    name="size"
+                    value={adjustForm.size}
+                    onChange={handleAdjustChange}
+                  >
+                    <option value="">All sizes / Not applicable</option>
+                    {selectedItem.sizes?.map((sizeObj) => (
+                      <option key={sizeObj.size} value={sizeObj.size}>
+                        {sizeObj.size} (Current: {sizeObj.stock})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Reason */}
@@ -633,7 +719,10 @@ const InventoryManagement = () => {
 
       {/* Item History Modal */}
       {showHistoryModal && selectedItem && (
-        <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowHistoryModal(false)}
+        >
           <div
             className="modal-content history-modal"
             onClick={(e) => e.stopPropagation()}
@@ -651,43 +740,43 @@ const InventoryManagement = () => {
             <div className="modal-body">
               <div className="history-list">
                 {getItemHistory().length > 0 ? (
-                  getItemHistory().map((log, index) => (
-                    <div key={log.id || index} className="history-item">
-                      <div className="history-icon">
-                        {log.adjustmentType === "add"
-                          ? "📈"
-                          : log.adjustmentType === "remove"
-                          ? "📉"
-                          : "🎯"}
-                      </div>
-                      <div className="history-details">
-                        <div className="history-header">
-                          <span
-                            className={`history-type ${log.adjustmentType}`}
-                          >
-                            {log.adjustmentType === "add"
-                              ? `+${log.quantityChanged}`
-                              : log.adjustmentType === "remove"
-                              ? log.quantityChanged
-                              : `Set to ${log.newQuantity}`}
-                          </span>
-                          <span className="history-date">
-                            {formatDate(log.createdAt)}
-                          </span>
+                  getItemHistory().map((log, index) => {
+                    const actionInfo = getActionDisplay(log.action);
+                    return (
+                      <div key={log.id || index} className="history-item">
+                        <div className="history-icon">{actionInfo.icon}</div>
+                        <div className="history-details">
+                          <div className="history-header">
+                            <span
+                              className={`history-type ${actionInfo.class}`}
+                            >
+                              {log.quantity >= 0
+                                ? `+${log.quantity}`
+                                : log.quantity}{" "}
+                              ({actionInfo.label})
+                            </span>
+                            <span className="history-date">
+                              {formatDate(log.createdAt)}
+                            </span>
+                          </div>
+                          <p className="history-reason">{log.reason}</p>
+                          <p className="history-change">
+                            {log.previousStock} → {log.newStock} units
+                          </p>
+                          {log.size && (
+                            <p className="history-notes">Size: {log.size}</p>
+                          )}
+                          {log.orderId && (
+                            <p className="history-by">Order: #{log.orderId}</p>
+                          )}
                         </div>
-                        <p className="history-reason">{log.reason}</p>
-                        <p className="history-change">
-                          {log.previousQuantity} → {log.newQuantity} units
-                        </p>
-                        {log.notes && (
-                          <p className="history-notes">Note: {log.notes}</p>
-                        )}
-                        <p className="history-by">By: {log.performedBy}</p>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
-                  <p className="no-history">No history available for this item</p>
+                  <p className="no-history">
+                    No history available for this item
+                  </p>
                 )}
               </div>
             </div>
@@ -727,46 +816,49 @@ const InventoryManagement = () => {
                   <thead>
                     <tr>
                       <th>Date</th>
-                      <th>Product</th>
-                      <th>SKU</th>
-                      <th>Type</th>
+                      <th>Product ID</th>
+                      <th>Action</th>
+                      <th>Size</th>
                       <th>Change</th>
                       <th>Stock</th>
                       <th>Reason</th>
-                      <th>By</th>
+                      <th>Order</th>
                     </tr>
                   </thead>
                   <tbody>
                     {inventoryLog.length > 0 ? (
-                      inventoryLog.map((log, index) => (
-                        <tr key={log.id || index}>
-                          <td className="date-cell">
-                            {formatDate(log.createdAt)}
-                          </td>
-                          <td>{log.productName}</td>
-                          <td className="sku-cell">{log.sku}</td>
-                          <td>
-                            <span
-                              className={`type-badge ${log.adjustmentType}`}
+                      inventoryLog.map((log, index) => {
+                        const actionInfo = getActionDisplay(log.action);
+                        return (
+                          <tr key={log.id || index}>
+                            <td className="date-cell">
+                              {formatDate(log.createdAt)}
+                            </td>
+                            <td>{log.productId}</td>
+                            <td>
+                              <span
+                                className={`type-badge ${actionInfo.class}`}
+                              >
+                                {actionInfo.label}
+                              </span>
+                            </td>
+                            <td>{log.size || "-"}</td>
+                            <td
+                              className={`change-cell ${
+                                log.quantity >= 0 ? "positive" : "negative"
+                              }`}
                             >
-                              {log.adjustmentType}
-                            </span>
-                          </td>
-                          <td
-                            className={`change-cell ${
-                              log.quantityChanged >= 0 ? "positive" : "negative"
-                            }`}
-                          >
-                            {log.quantityChanged >= 0 ? "+" : ""}
-                            {log.quantityChanged}
-                          </td>
-                          <td>
-                            {log.previousQuantity} → {log.newQuantity}
-                          </td>
-                          <td>{log.reason}</td>
-                          <td>{log.performedBy}</td>
-                        </tr>
-                      ))
+                              {log.quantity >= 0 ? "+" : ""}
+                              {log.quantity}
+                            </td>
+                            <td>
+                              {log.previousStock} → {log.newStock}
+                            </td>
+                            <td>{log.reason}</td>
+                            <td>{log.orderId || "-"}</td>
+                          </tr>
+                        );
+                      })
                     ) : (
                       <tr>
                         <td colSpan="8" className="no-data">
