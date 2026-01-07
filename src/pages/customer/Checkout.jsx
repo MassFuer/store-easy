@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
+import { createOrder } from "../../services/api";
 import "./Checkout.css";
 
 const Checkout = () => {
@@ -72,6 +71,38 @@ const Checkout = () => {
     if (!validateForm()) {
       return;
     }
+    // Create order payload
+    const orderData = {
+      userId: user?.id || null,
+      customerName: `${formData.firstName} ${formData.lastName}`,
+      email: formData.email,
+      items: cartItems.map((item) => ({
+        productId: item.id,
+        name: item.name,
+        price: item.price,
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity,
+        image: item.thumbnail || item.image,
+      })),
+      subtotal: totalAmount,
+      shipping: shippingCost,
+      tax: Math.round(totalAmount * 0.1 * 100) / 100, // 10% tax
+      total: finalTotal + Math.round(totalAmount * 0.1 * 100) / 100,
+      shippingAddress: {
+        street: formData.address + (formData.apartment ? `, ${formData.apartment}` : ""),
+        city: formData.city,
+        state: "",
+        zipCode: formData.zipCode,
+        country: formData.country,
+      },
+      paymentMethod: "credit_card",
+      paymentStatus: "pending",
+    };
+
+    
+    // Simulate API call
+    createOrder(orderData);
 
     alert(
       `Order placed successfully!\nTotal: €${finalTotal.toFixed(

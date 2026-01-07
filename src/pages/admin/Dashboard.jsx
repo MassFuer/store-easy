@@ -180,6 +180,7 @@ const Dashboard = () => {
               <tr>
                 <th>Order Number</th>
                 <th>Customer</th>
+                <th>Email</th>
                 <th>Items</th>
                 <th>Date</th>
                 <th>Amount</th>
@@ -196,10 +197,12 @@ const Dashboard = () => {
                         <span className="customer-name">
                           {order.customerName}
                         </span>
-                        <span className="customer-email">
-                          {order.customerEmail}
-                        </span>
                       </div>
+                    </td>
+                    <td>
+                      <span className="customer-email">
+                        {order.customerEmail}
+                      </span>
                     </td>
                     <td>{order.itemCount} item(s)</td>
                     <td>{formatDate(order.orderDate)}</td>
