@@ -56,11 +56,11 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      // <div className="dashboard-loading">
-      //   <div className="loader"></div>
-      //   <p>Loading dashboard...</p>
-      // </div>
-      <Loader message="Loading dashboard..." />
+      <div className="dashboard-loading">
+        <div className="loader"></div>
+        <p>Loading dashboard...</p>
+      </div>
+      // <Loader message="Loading dashboard..." />
     );
   }
 
