@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getProductById } from "../../services/api";
+import { getProductById, getProductReviews } from "../../services/api";
 import { useCart } from "../../context/CartContext";
+import { useFavorites } from "../../context/FavoritesContext";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import Loader from "../../components/Loader";
@@ -11,8 +12,10 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -26,6 +29,10 @@ const ProductDetail = () => {
         setLoading(true);
         const data = await getProductById(id);
         setProduct(data);
+
+        // Fetch reviews
+        const reviewsData = await getProductReviews(id);
+        setReviews(reviewsData);
 
         // Set default selections
         if (data.colors && data.colors.length > 0) {
@@ -89,6 +96,10 @@ const ProductDetail = () => {
     }
   };
 
+  const handleFavoriteClick = () => {
+    toggleFavorite(product.id);
+  };
+
   if (loading) {
     return (
       <>
@@ -142,17 +153,42 @@ const ProductDetail = () => {
         {/* Product Info */}
         <div className="product-info-section">
           <div className="product-header">
-            <h1>{product.name}</h1>
-            <p className="product-brand">{product.brand}</p>
+            <div className="product-header-top">
+              <div>
+                <h1>{product.name}</h1>
+                <p className="product-brand">{product.brand}</p>
+              </div>
+              <button
+                className={`favorite-btn-detail ${isFavorite(product.id) ? 'favorited' : ''}`}
+                onClick={handleFavoriteClick}
+                aria-label={isFavorite(product.id) ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                <svg
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill={isFavorite(product.id) ? 'currentColor' : 'none'}
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
 
-            {product.averageRating && (
+            {product.rating && (
               <div className="rating-section">
                 <span className="rating-stars">
-                  ⭐ {product.averageRating.toFixed(1)}
+                  ⭐ {product.rating.toFixed(1)}
                 </span>
-                {product.totalReviews > 0 && (
+                {product.reviews > 0 && (
                   <span className="review-count">
-                    ({product.totalReviews} reviews)
+                    ({product.reviews} reviews)
                   </span>
                 )}
               </div>
@@ -288,6 +324,51 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Reviews Section */}
+      {reviews && reviews.length > 0 && (
+        <div className="reviews-section">
+          <div className="reviews-header">
+            <h2>Customer Reviews</h2>
+            <div className="reviews-summary">
+              <div className="average-rating">
+                <span className="rating-number">{product.rating.toFixed(1)}</span>
+                <div className="rating-stars-large">
+                  {'⭐'.repeat(Math.round(product.rating))}
+                </div>
+                <span className="total-reviews">Based on {product.reviews} reviews</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="reviews-list">
+            {reviews.map((review) => (
+              <div key={review.id} className="review-card">
+                <div className="review-header">
+                  <div className="reviewer-info">
+                    <span className="reviewer-name">{review.userName}</span>
+                    {review.verified && (
+                      <span className="verified-badge">✓ Verified Purchase</span>
+                    )}
+                  </div>
+                  <div className="review-rating">
+                    {'⭐'.repeat(review.rating)}
+                  </div>
+                </div>
+                <p className="review-date">
+                  {new Date(review.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+                {review.title && <h4 className="review-title">{review.title}</h4>}
+                <p className="review-comment">{review.comment}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
