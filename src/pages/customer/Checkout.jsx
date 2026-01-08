@@ -90,7 +90,9 @@ const Checkout = () => {
       tax: Math.round(totalAmount * 0.1 * 100) / 100, // 10% tax
       total: finalTotal + Math.round(totalAmount * 0.1 * 100) / 100,
       shippingAddress: {
-        street: formData.address + (formData.apartment ? `, ${formData.apartment}` : ""),
+        street:
+          formData.address +
+          (formData.apartment ? `, ${formData.apartment}` : ""),
         city: formData.city,
         state: "",
         zipCode: formData.zipCode,
@@ -100,7 +102,6 @@ const Checkout = () => {
       paymentStatus: "pending",
     };
 
-    
     // Simulate API call
     createOrder(orderData);
 
@@ -279,18 +280,13 @@ const Checkout = () => {
 
                   <div className="form-group">
                     <label htmlFor="country">Country</label>
-                    <select
+                    <input
                       id="country"
                       name="country"
                       value={formData.country}
                       onChange={handleChange}
-                    >
-                      <option value="USA">United States</option>
-                      <option value="UK">United Kingdom</option>
-                      <option value="FR">France</option>
-                      <option value="DE">Germany</option>
-                      <option value="ES">Spain</option>
-                    </select>
+                      placeholder="Enter country"
+                    />
                   </div>
                 </div>
 
