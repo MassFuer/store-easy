@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import { useAuth } from "./AuthContext";
 import { API_URL } from "../config/apiConfig";
+import { getUserById, updateUserProfile } from "../services/api";
 export const FavoritesContext = createContext();
 
 export const useFavorites = () => {
@@ -8,7 +9,7 @@ export const useFavorites = () => {
 };
 
 export const FavoritesProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -26,8 +27,7 @@ export const FavoritesProvider = ({ children }) => {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/users/${user.id}`);
-      const userData = await response.json();
+      const userData = await getUserById(user.id);
       setFavorites(userData.favorites || []);
     } catch (error) {
       console.error("Error fetching favorites:", error);
@@ -52,24 +52,13 @@ export const FavoritesProvider = ({ children }) => {
     setFavorites(newFavorites);
 
     try {
-      const response = await fetch(`${API_URL}/users/${user.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ favorites: newFavorites }),
-      });
+      // Fetch the latest user data to avoid overwriting other fields
+      const userData = await getUserById(user.id);
+      const { favorites, ...rest } = userData; // Exclude old favorites
+      const userBody = { ...rest, favorites: newFavorites };
 
-      if (!response.ok) {
-        throw new Error("Failed to update favorites");
-      }
-
-      // Verify the update was successful by fetching fresh data
-      const verifyResponse = await fetch(
-        `${API_URL}/users/${user.id}`
-      );
-      const userData = await verifyResponse.json();
-      setFavorites(userData.favorites || []);
-
-      console.log("Favorites updated successfully:", userData.favorites);
+      const response = await updateUserProfile(user.id, userBody);
+      updateUser(response);
     } catch (error) {
       console.error("Error updating favorites:", error);
       // Revert on error
